@@ -1,6 +1,15 @@
+#include <Adafruit_GFX.h>
+#include <Adafruit_GrayOLED.h>
+#include <Adafruit_SPITFT.h>
+#include <Adafruit_SPITFT_Macros.h>
+#include <gfxfont.h>
+
 #include "SPI.h"
 #include "Adafruit_GFX.h"
 #include "Adafruit_ILI9341.h"
+
+#define _USE_MATH_DEFINES // Assure l'utilisation de M_PI pour Pi
+#include <math.h>
 
 // Configuration des broches pour l'écran
 #define TFT_CS    7
@@ -22,35 +31,58 @@ void setup() {
 
   drawHeader();
   drawDirectionCircle();
-  drawProgressBar();
+  drawProgressBar(12, 0);
   drawFooter();
+
+  rotateArrowToAngle(0, 0);
 }
 
 void loop() {
-  // Simule un 360° toutes les 10 secondes
   static unsigned long lastRotate = millis();
   if (millis() - lastRotate > 10000) {
-    rotateArrow();
+    int temps_total_course = 12;
+    int progression_bar = 0;
+    int distance = 30;
+    char * text = "2 casserolles";
+    for (int starting_angle = 0; starting_angle < 360; starting_angle += 10) {
+        rotateArrowToAngle(starting_angle, starting_angle + 10);
+        drawProgressBar(temps_total_course - 3, progression_bar + 25);
+        drawDistance(distance - 15);
+        drawArticle(text);
+    }
     lastRotate = millis();
   }
+}
+
+void drawDistance(int distance) {
+  tft.fillRect(10, 15, 100, 30, tft.color565(39, 194, 120)); // Rectangle vert #27C278
+
+  tft.setCursor(10, 15); // Position du texte de distance
+  tft.setTextColor(ILI9341_WHITE);
+  tft.setTextSize(2);
+  tft.print(distance);
+  tft.print(" metres");
+}
+
+void drawArticle(char * text){
+  tft.fillRect(180, 40, 100, 10, tft.color565(39, 194, 120)); // Rectangle vert #27C278
+  tft.setCursor(180, 40); 
+  tft.setTextColor(ILI9341_WHITE);
+  tft.setTextSize(1);
+  tft.print(text);
 }
 
 // Fonction pour dessiner l'en-tête
 void drawHeader() {
   tft.fillRect(0, 0, 240, 50, tft.color565(39, 194, 120)); // Rectangle vert #27C278
   
-  tft.setCursor(10, 15); // Position du texte de distance
-  tft.setTextColor(ILI9341_WHITE);
-  tft.setTextSize(2);
-  tft.print("30 metres");
+  drawDistance(30);
 
   tft.drawCircle(200, 25, 15, ILI9341_WHITE); // Cercle autour de l'image
   tft.fillCircle(200, 25, 14, ILI9341_WHITE); // Fond blanc pour image
   // Remplacez par l'image d'œufs si disponible
-  tft.setCursor(180, 40); 
-  tft.setTextColor(ILI9341_WHITE);
-  tft.setTextSize(1);
-  tft.print("12 oeufs");
+  
+  drawArticle("12 oeufs");
 }
 
 // Fonction pour dessiner le cercle et la flèche
@@ -77,15 +109,65 @@ void rotateArrow() {
   }
 }
 
+// Fonction pour animer une rotation de la flèche vers un angle donné
+void rotateArrowToAngle(int currentAngle, int targetAngle) {
+  // Détermine la direction de rotation (horaire ou antihoraire)
+  int step = (targetAngle > currentAngle) ? 10 : -10;
+
+  // Continue la rotation jusqu'à atteindre l'angle cible
+  while ((step > 0 && currentAngle <= targetAngle) || (step < 0 && currentAngle >= targetAngle)) {
+    // Efface l'ancien triangle
+    tft.fillCircle(120, 140, 60, tft.color565(39, 194, 120)); 
+
+    // Calcule les positions des points du triangle pour l'angle courant
+    float angleRad = radians(currentAngle);
+    float x1 = 120 + 30 * cos(angleRad);
+    float y1 = 140 - 30 * sin(angleRad);
+    float x2 = 120 + 20 * cos(radians(currentAngle + 120));
+    float y2 = 140 - 20 * sin(radians(currentAngle + 120));
+    float x3 = 120 + 20 * cos(radians(currentAngle + 240));
+    float y3 = 140 - 20 * sin(radians(currentAngle + 240));
+
+    // Dessine le triangle à l'angle actuel
+    tft.fillTriangle(x1, y1, x2, y2, x3, y3, ILI9341_WHITE);
+
+    // Attente pour créer l'animation
+    delay(50);
+
+    // Passe à l'angle suivant
+    currentAngle += step;
+  }
+
+  // S'assure que le triangle termine exactement à l'angle cible
+  if (currentAngle != targetAngle) {
+    tft.fillCircle(120, 140, 60, tft.color565(39, 194, 120));
+
+    float angleRad = radians(targetAngle);
+    float x1 = 120 + 30 * cos(angleRad);
+    float y1 = 140 - 30 * sin(angleRad);
+    float x2 = 120 + 20 * cos(radians(targetAngle + 120));
+    float y2 = 140 - 20 * sin(radians(targetAngle + 120));
+    float x3 = 120 + 20 * cos(radians(targetAngle + 240));
+    float y3 = 140 - 20 * sin(radians(targetAngle + 240));
+
+    tft.fillTriangle(x1, y1, x2, y2, x3, y3, ILI9341_WHITE);
+  }
+}
+
+
 // Fonction pour dessiner la barre de progression
-void drawProgressBar() {
+void drawProgressBar(int temps_restant, int progression_bar) {
+  tft.fillRect(5, 230, 250, 20, ILI9341_WHITE); // effacer l'écriture précédente
+
   tft.setCursor(5, 230);
   tft.setTextColor(ILI9341_BLACK); // Couleur bleue #42BDE3
   tft.setTextSize(1);
-  tft.print("Temps de course restant estime a 12min");
+  tft.print("Temps de course restant estime a ");
+  tft.print(temps_restant);
+  tft.print("min");
 
   tft.fillRect(20, 250, 200, 10, ILI9341_LIGHTGREY); // Fond de la barre
-  tft.fillRect(20, 250, 120, 10, tft.color565(66, 189, 227)); // Barre bleue #42BDE3
+  tft.fillRect(20, 250, progression_bar * 2, 10, tft.color565(66, 189, 227)); // Barre bleue #42BDE3
   
 }
 
