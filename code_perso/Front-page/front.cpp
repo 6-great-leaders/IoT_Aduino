@@ -1,60 +1,6 @@
-#include <Adafruit_GFX.h>
-#include <Adafruit_GrayOLED.h>
-#include <Adafruit_SPITFT.h>
-#include <Adafruit_SPITFT_Macros.h>
-#include <gfxfont.h>
+#include "front.h"
 
-#include "SPI.h"
-#include "Adafruit_GFX.h"
-#include "Adafruit_ILI9341.h"
-
-#define _USE_MATH_DEFINES // Assure l'utilisation de M_PI pour Pi
-#include <math.h>
-
-// Configuration des broches pour l'écran
-#define TFT_CS    7
-#define TFT_DC    11
-#define TFT_MOSI  8
-#define TFT_CLK   SCK
-#define TFT_RST   6
-#define TFT_MISO  10
-
-// Initialisation de l'écran
-Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC, TFT_MOSI, TFT_CLK, TFT_RST, TFT_MISO);
-
-void setup() {
-  Serial.begin(9600);
-  while (!Serial) {}
-  
-  tft.begin();
-  tft.fillScreen(ILI9341_WHITE); // Fond blanc pour commencer
-
-  drawHeader();
-  drawDirectionCircle();
-  drawProgressBar(12, 0);
-  drawFooter();
-
-  rotateArrowToAngle(0, 0);
-}
-
-void loop() {
-  static unsigned long lastRotate = millis();
-  if (millis() - lastRotate > 10000) {
-    int temps_total_course = 12;
-    int progression_bar = 0;
-    int distance = 30;
-    char * text = "2 casserolles";
-    for (int starting_angle = 0; starting_angle < 360; starting_angle += 10) {
-        rotateArrowToAngle(starting_angle, starting_angle + 10);
-        drawProgressBar(temps_total_course - 3, progression_bar + 25);
-        drawDistance(distance - 15);
-        drawArticle(text);
-    }
-    lastRotate = millis();
-  }
-}
-
-void drawDistance(int distance) {
+void drawDistance(Adafruit_ILI9341 tft, int distance) {
   tft.fillRect(10, 15, 100, 30, tft.color565(39, 194, 120)); // Rectangle vert #27C278
 
   tft.setCursor(10, 15); // Position du texte de distance
@@ -64,7 +10,7 @@ void drawDistance(int distance) {
   tft.print(" metres");
 }
 
-void drawArticle(char * text){
+void drawArticle(Adafruit_ILI9341 tft, char * text){
   tft.fillRect(180, 40, 100, 10, tft.color565(39, 194, 120)); // Rectangle vert #27C278
   tft.setCursor(180, 40); 
   tft.setTextColor(ILI9341_WHITE);
@@ -73,27 +19,27 @@ void drawArticle(char * text){
 }
 
 // Fonction pour dessiner l'en-tête
-void drawHeader() {
+void drawHeader(Adafruit_ILI9341 tft) {
   tft.fillRect(0, 0, 240, 50, tft.color565(39, 194, 120)); // Rectangle vert #27C278
   
-  drawDistance(30);
+  drawDistance(tft, 30);
 
   tft.drawCircle(200, 25, 15, ILI9341_WHITE); // Cercle autour de l'image
   tft.fillCircle(200, 25, 14, ILI9341_WHITE); // Fond blanc pour image
   // Remplacez par l'image d'œufs si disponible
   
-  drawArticle("12 oeufs");
+  drawArticle(tft, "12 oeufs");
 }
 
 // Fonction pour dessiner le cercle et la flèche
-void drawDirectionCircle() {
+void drawDirectionCircle(Adafruit_ILI9341 tft) {
   tft.fillCircle(120, 140, 60, tft.color565(39, 194, 120)); // Cercle vert
   
   tft.fillTriangle(110, 100, 130, 100, 120, 70, ILI9341_WHITE); // Flèche blanche
 }
 
 // Fonction pour animer une rotation de la flèche
-void rotateArrow() {
+void rotateArrow(Adafruit_ILI9341 tft) {
   for (int angle = 0; angle <= 360; angle += 10) {
     tft.fillCircle(120, 140, 60, tft.color565(39, 194, 120)); // Efface l'ancien
     tft.fillTriangle(
@@ -110,7 +56,7 @@ void rotateArrow() {
 }
 
 // Fonction pour animer une rotation de la flèche vers un angle donné
-void rotateArrowToAngle(int currentAngle, int targetAngle) {
+void rotateArrowToAngle(Adafruit_ILI9341 tft, int currentAngle, int targetAngle) {
   // Détermine la direction de rotation (horaire ou antihoraire)
   int step = (targetAngle > currentAngle) ? 10 : -10;
 
@@ -156,7 +102,7 @@ void rotateArrowToAngle(int currentAngle, int targetAngle) {
 
 
 // Fonction pour dessiner la barre de progression
-void drawProgressBar(int temps_restant, int progression_bar) {
+void drawProgressBar(Adafruit_ILI9341 tft, int temps_restant, int progression_bar) {
   tft.fillRect(5, 230, 250, 20, ILI9341_WHITE); // effacer l'écriture précédente
 
   tft.setCursor(5, 230);
@@ -171,7 +117,7 @@ void drawProgressBar(int temps_restant, int progression_bar) {
   
 }
 
-void drawBoldText(const char* text, int x, int y, uint16_t color, uint8_t size = 1) {
+void drawBoldText(Adafruit_ILI9341 tft, const char* text, int x, int y, uint16_t color, uint8_t size = 1) {
   tft.setTextColor(color);
   tft.setTextSize(size);
 
@@ -187,7 +133,7 @@ void drawBoldText(const char* text, int x, int y, uint16_t color, uint8_t size =
 }
 
 // Fonction pour dessiner le pied de page
-void drawFooter() {
+void drawFooter(Adafruit_ILI9341 tft) {
   tft.fillRect(0, 280, 240, 40, ILI9341_LIGHTGREY); // Rectangle gris pour les boutons
 
   // Dessin des boutons

@@ -1,51 +1,6 @@
-#include <ArduinoBLE.h>
+#include "localisation.h"
 
-// Adresses MAC des balises cibles
-const char* targetAddresses[3] = {
-  "f9:15:ff:1d:3f:6e", // Adresse MAC de la balise 1
-  "d3:0b:c2:cd:eb:30", // Adresse MAC de la balise 2
-  "de:8a:30:26:cf:c2"  // Adresse MAC de la balise 3
-};
-
-// Positions fixes des balises (en mètres)
-struct Position {
-  float x;
-  float y;
-  float z;
-};
-
-Position targetObject = {3.0, 2.0, 0.0};
-
-Position beacons[3] = {
-  {0.0, 0.0, 0.0},   // Balise 1
-  {5.0, 0.0, 0.0},   // Balise 2
-  {2.5, 4.33, 0.0}   // Balise 3 (forme un triangle équilatéral)
-};
-
-// Tableaux pour stocker les périphériques connectés
-BLEDevice connectedDevices[3];
-bool isConnected[3] = { false, false, false };
-int rssi[3] = {0, 0, 0};
-float distances[3] = {-1, -1, -1};
-
-#define NUM_MEASUREMENTS 15 // Nombre de mesures pour la moyenne glissante
-
-// Tableaux circulaires pour stocker les dernières mesures de RSSI
-int rssiHistory[3][NUM_MEASUREMENTS] = { {0}, {0}, {0} };
-int historyIndex[3] = { 0, 0, 0 }; // Indice actuel pour chaque balise
-bool historyFilled[3] = { false, false, false }; // Indique si le tableau est rempli pour chaque balise
-
-
-float articlePosition[3] = {1.5, 0.2, 0};
-
-// Variables pour le filtre de Kalman
-float RSSI_estimate[3] = {0, 0, 0}; // Estimation du RSSI pour chaque balise
-float P[3] = {1, 1, 1};             // Incertitude de l'estimation
-const float Q[] = {59.61, 83.91, 31.43};                // Bruit du modèle (ajustable)
-const float R[] = {25.8, 46.29, 13.11};                  // Bruit de mesure (ajustable)
-
-
-Position calculatePosition() {
+Position calculatePosition(Position beacons[], float distances[]) {
   float x1 = beacons[0].x, y1 = beacons[0].y;
   float x2 = beacons[1].x, y2 = beacons[1].y;
   float x3 = beacons[2].x, y3 = beacons[2].y;
@@ -74,7 +29,6 @@ float calculateDistanceToTarget(Position pos1, Position pos2) {
   return sqrt(pow(pos1.x - pos2.x, 2) + pow(pos1.y - pos2.y, 2) + pow(pos1.z - pos2.z, 2));
 }
 
-// Fonction pour convertir le RSSI en distance approximative
 float calculateDistance(int rssi) {
   const int txPower = -59; // Ajustez selon votre balise
   if (rssi == 0) {
@@ -89,7 +43,8 @@ float calculateDistance(int rssi) {
   }
 }
 
-int calculateAverageRSSI(int beaconIndex) {
+
+int calculateAverageRSSI(int beaconIndex, bool historyFilled[], int historyIndex[], int rssiHistory[][NUM_MEASUREMENTS]) {
   int sum = 0;
   int count = historyFilled[beaconIndex] ? NUM_MEASUREMENTS : historyIndex[beaconIndex];
 
@@ -101,7 +56,7 @@ int calculateAverageRSSI(int beaconIndex) {
 }
 
 // fonction qui va détecter et tenter de se connecter a un appareil
-void findDevices() {
+void findDevices(bool isConnected[], BLEDevice connectedDevices[], const char* targetAddresses[]) {
   for (int attempts = 0; attempts < 5; attempts++) {
     //Serial.print("Scanning for new devices...");
     if (isConnected[0] && isConnected[1] && isConnected[2]) {
@@ -131,7 +86,7 @@ void findDevices() {
 }
 
 // fonction qui recupere les informations RSSI 
-void getCoordinates() {
+void getCoordinates(bool isConnected[], float RSSI_estimate[], float P[], const float Q[], const float R[], float distances[], BLEDevice connectedDevices[]) {
   for (int i = 0; i < 3; i++) {
     if (isConnected[i]) {
       BLEDevice& device = connectedDevices[i];
@@ -139,11 +94,10 @@ void getCoordinates() {
       // Vérifier que la connexion est toujours active
       if (!device.connected()) {
         Serial.print("Perte de connexion avec la balise ");
-        Serial.println(targetAddresses[i]);
+        Serial.println(i);
         isConnected[i] = false;
         continue;
       }
-      
 
       int currentRSSI = device.rssi();
 
@@ -157,65 +111,23 @@ void getCoordinates() {
 
       // Convertir le RSSI lissé en distance
       distances[i] = calculateDistance(RSSI_estimate[i]);
-
-      // Afficher les résultats
-      Serial.print("Beacon ");
-      Serial.print(i);
-      Serial.print(" [");
-      Serial.print(targetAddresses[i]);
-      Serial.print("]: RSSI (Kalman) = ");
-      Serial.print(RSSI_estimate[i]);
-      Serial.print(" dBm, Distance = ");
-      Serial.print(distances[i]);
-      Serial.println(" meters");
     }
   }
 }
 
-void setup() {
-  Serial.begin(9600);
-  while (!Serial);
-
-  if (!BLE.begin()) {
-    Serial.println("Erreur d'initialisation BLE!");
-    while (1);
-  }
-
-  Serial.println("Initialisation réussie. Scannage des périphériques...");
-}
-
-void loop() {
-
-  findDevices();
-  getCoordinates();
-
-  Position currentPosition = calculatePosition();
-
-  // Calculer la distance à l'objet cible
-  float distanceToTarget = calculateDistanceToTarget(currentPosition, targetObject);
-
-  // Afficher les résultats
-  Serial.print("Position actuelle : (");
-  Serial.print(currentPosition.x);
-  Serial.print(", ");
-  Serial.print(currentPosition.y);
-  Serial.println(")");
-
-  Serial.print("Distance à l'objet cible : ");
-  Serial.print(distanceToTarget);
-  Serial.println(" mètres");
-
-  // Détecter si on se rapproche de l'objet
-  static float previousDistance = -1;
-  if (previousDistance > 0) {
+bool detectRightDirection(float distanceToTarget, float &previousDistance) {
+  if (previousDistance > 0) { // Vérifie si une distance précédente existe
     if (distanceToTarget < previousDistance) {
       Serial.println("Vous vous rapprochez de l'objet !");
+      previousDistance = distanceToTarget;
+      return true;
     } else if (distanceToTarget > previousDistance) {
       Serial.println("Vous vous éloignez de l'objet.");
+      previousDistance = distanceToTarget;
+      return false;
     }
   }
+  // Mettre à jour la distance précédente
   previousDistance = distanceToTarget;
-
-
-  delay(400); // Petite pause pour éviter une surcharge du processeur
+  return true;
 }
