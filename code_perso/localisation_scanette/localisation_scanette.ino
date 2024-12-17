@@ -47,7 +47,6 @@ void setup() {
 }
 
 void loop() {
-
   findDevices(isConnected, connectedDevices, targetAddresses);
   getCoordinates(isConnected, RSSI_estimate, P, Q, R, distances, connectedDevices);
 
@@ -69,7 +68,6 @@ void loop() {
 
   static float previousDistance = -1;
   detectRightDirection(distanceToTarget, previousDistance);
-
 
   delay(400); // Petite pause pour éviter une surcharge du processeur
 }
