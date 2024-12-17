@@ -13,10 +13,10 @@ const char* ssid = "Coucou"; // Nom du réseau WiFi
 const char* password = "coucoucou"; // Mot de passe du réseau WiFi
 
 // Adresse IP publique du serveur
-const char* server = "192.168.1.46";
+const char* server = "146.148.5.29";
 
 // Port du serveur
-const int port = 3444;
+const int port = 4000;
 
 const char* endpoint_get_liste = "/scanner/articles/1/1"; // Chemin de l'API getliste
 const char* endpoint_get_article = "/scanner/article/"; // Chemin de l'API getarticles
@@ -65,7 +65,80 @@ const float R[] = {25.8, 46.29, 13.11};                  // Bruit de mesure (aju
 
 Position targetObject = {3.0, 2.0, 0.0};
 
+bool started = false;
+bool rightDirection = false;
 
+void parseJsonToProductList(const String& jsonInput, ProductList& productList) {
+    StaticJsonDocument<2048> doc; // Ajustez la taille si nécessaire
+    DeserializationError error = deserializeJson(doc, jsonInput);
+
+    // Vérifiez si la désérialisation a réussi
+    if (error) {
+        Serial.print("Erreur lors du parsing JSON : ");
+        Serial.println(error.c_str());
+        return;
+    }
+
+    // Vérifiez que le JSON est un tableau
+    if (!doc.is<JsonArray>()) {
+        Serial.println("Erreur : Le JSON n'est pas un tableau !");
+        return;
+    }
+
+    // Parcourir les objets dans le tableau
+    for (JsonObject obj : doc.as<JsonArray>()) {
+        Product product;
+
+        // Extraire et assigner les champs
+        product.id = String(obj["id"].as<int>());
+        product.name = obj["name"] | "";
+        product.article_id = String(obj["article_id"].as<int>());
+        product.suggested = obj["suggested"] | false;
+        product.scanned = obj["scanned"] | false;
+        product.positionX = String(obj["x"].as<int>());
+        product.positionY = String(obj["y"].as<int>());
+
+        // Ajouter le produit à la liste
+        productList.addProduct(product);
+    }
+}
+
+void GetListe() {
+  Serial.println("Envoi de la requête GET Liste ...");
+
+  // Construire la requête HTTP
+  httpClient.beginRequest();
+  httpClient.get(endpoint_get_liste);
+  httpClient.endRequest();
+
+  // Lire la réponse du serveur
+  int statusCode = httpClient.responseStatusCode();
+  String response = httpClient.responseBody();
+  Serial.print("Statut HTTP : ");
+  Serial.println(statusCode);
+  if (statusCode == 200) {
+    Serial.println("Réponse reçue :");
+    Serial.println(response);
+
+    // Mettre à jour la liste de produits
+    parseJsonToProductList(response, productList);
+
+    // Afficher les produits mis à jour
+    for (size_t i = 0; i < productList.size; i++) {
+      Product p = productList.products[i];
+      Serial.println("Produit :");
+      Serial.println("ID: " + p.id);
+      Serial.println("Nom: " + p.name);
+      Serial.println("Article ID: " + p.article_id);
+      Serial.println("Suggéré: " + String(p.suggested));
+      Serial.println("Acheté: " + String(p.scanned));
+      Serial.println("Position: (" + p.positionX + ", " + p.positionY + ")");
+      Serial.println();
+    }
+  } else {
+    Serial.println("Erreur lors de l'appel API.");
+  }
+}
 
 
 void setup() {
@@ -76,14 +149,6 @@ void setup() {
   // Initialisation ecran
   tft.begin();
   tft.fillScreen(ILI9341_WHITE); // Fond blanc pour commencer
-
-  drawHeader(tft);
-  drawDirectionCircle(tft);
-  drawProgressBar(tft, 12, 0);
-  drawFooter(tft);
-  rotateArrowToAngle(tft, 0, 0);
-
-
 
   // initialisation connexion au backend
   Serial.println("Connexion au WiFi...");
@@ -100,31 +165,34 @@ void setup() {
     while (1);
   }
   Serial.println("Initialisation réussie. Scannage des périphériques...");
+
+  // draw welcome page
+  drawWelcomeScreen(tft);
 }
 
 
 void loop() {
   // loop localisation
-  //findDevices(isConnected, connectedDevices, targetAddresses);
-  //getCoordinates(isConnected, RSSI_estimate, P, Q, R, distances, connectedDevices);
-//
-  //Position currentPosition = calculatePosition(beacons, distances);
-//
-  //// Calculer la distance à l'objet cible
-  //float distanceToTarget = calculateDistanceToTarget(currentPosition, targetObject);
-//
-  //// Afficher les résultats
-  //Serial.print("Position actuelle : (");
-  //Serial.print(currentPosition.x);
-  //Serial.print(", ");
-  //Serial.print(currentPosition.y);
-  //Serial.println(")");
-  //Serial.print("Distance à l'objet cible : ");
-  //Serial.print(distanceToTarget);
-  //Serial.println(" mètres");
-//
-  //static float previousDistance = -1;
-  //detectRightDirection(distanceToTarget, previousDistance);
+  findDevices(isConnected, connectedDevices, targetAddresses);
+  getCoordinates(isConnected, RSSI_estimate, P, Q, R, distances, connectedDevices);
+
+  Position currentPosition = calculatePosition(beacons, distances);
+
+  // Calculer la distance à l'objet cible
+  float distanceToTarget = calculateDistanceToTarget(currentPosition, targetObject);
+
+  // Afficher les résultats
+  Serial.print("Position actuelle : (");
+  Serial.print(currentPosition.x);
+  Serial.print(", ");
+  Serial.print(currentPosition.y);
+  Serial.println(")");
+  Serial.print("Distance à l'objet cible : ");
+  Serial.print(distanceToTarget);
+  Serial.println(" mètres");
+
+  static float previousDistance = -1;
+  rightDirection = detectRightDirection(distanceToTarget, previousDistance);
 
   while (Serial1.available()) {
     // loop lien backend
@@ -147,7 +215,10 @@ void loop() {
         Serial.println("ID : " + id);
         fct.trim();
         if (fct == "get_liste") {
-          GetListe(httpClient, endpoint_get_liste, &productList);
+          //Serial.println(productList.products[0]);
+          GetListe();
+          started = true;
+          //Serial.println(productList.products[0]);
         } else if (fct == "get_article") {
           GetArticle(httpClient, endpoint_get_article, &productList, id);
         } else {
@@ -162,6 +233,40 @@ void loop() {
       buffer = "";
     }
   }
+
+  // update l'écran, je veux montrer si on est dans la bonne direction avec la fleche
+  // montrer le nom du premier article non scanné
+  if (started) {
+    if (rightDirection) {
+      rotateArrowToAngle(tft, 90, 90);
+    }
+    else {
+      rotateArrowToAngle(tft, 270, 270);
+    }
+  }
+
+/*
+  if (!qrCodeScanned) {
+    // Ici, on va insérer le code pour vérifier le scan du QR Code
+    if (checkQRCodeScan()) { // Fonction de mattéo qui retourne true (ou le json, voir avec lui) quand QR Code est scanné
+      qrCodeScanned = true;
+      tft.fillScreen(ILI9341_WHITE); // Efface l'écran pour éviter les anciens contenus
+      drawHeader(&tft);
+      drawDirectionCircle(&tft);
+      drawProgressBar(&tft, 12, 0);
+      drawFooter(&tft);
+
+      rotateArrowToAngle(&tft, 0, 0)
+    }
+  }*/
+  /*rajouter un truc de quand la barre atteint 100% :
+  if (progression_bar >= 100) {
+      drawEndScreen(&tft);
+      while (true); // Arrête la boucle une fois l'écran final affiché
+    }
+  */
+
+
 
   //// loop ecran
   //static unsigned long lastRotate = millis();
@@ -181,5 +286,5 @@ void loop() {
   
   
   
-  //delay(400); // Petite pause pour éviter une surcharge du processeur
+  delay(400); // Petite pause pour éviter une surcharge du processeur
 }

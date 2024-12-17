@@ -65,12 +65,12 @@ struct ProductList {
 
 void connectToWiFi(const char* ssid, const char* password);
 
-void GetListe(HttpClient httpClient, const char* endpoint_get_liste, ProductList* productList);
+//void GetListe(HttpClient httpClient, const char* endpoint_get_liste, ProductList* productList);
 
 void GetArticle(HttpClient httpClient, const char* endpoint_get_article, ProductList* productList, String id);
 
 void MarkAsBought(const String& articleId, ProductList* productList);
 
-void parseJsonToProductList(const String& jsonInput, ProductList* productList);
+//void parseJsonToProductList(const String& jsonInput, ProductList* productList);
 
 #endif

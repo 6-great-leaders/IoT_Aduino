@@ -25,9 +25,9 @@
 
 void drawWelcomeScreen(Adafruit_ILI9341 tft);
 
-void drawDistance(Adafruit_ILI9341 tft, int distance);
+void drawDistance(Adafruit_ILI9341 tft, float distance);
 
-void drawArticle(Adafruit_ILI9341 tft, char * text);
+void drawArticle(Adafruit_ILI9341 tft, const char * text);
 
 void drawHeader(Adafruit_ILI9341 tft);
 

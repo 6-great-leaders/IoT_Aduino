@@ -13,7 +13,7 @@ void connectToWiFi(const char* ssid, const char* password) {
   Serial.print("Adresse IP : ");
   Serial.println(WiFi.localIP());
 }
-
+/*
 // Fonction pour effectuer un appel GET à l'URL fixe
 void GetListe(HttpClient httpClient, const char* endpoint_get_liste, ProductList* productList) {
   Serial.println("Envoi de la requête GET Liste ...");
@@ -21,7 +21,10 @@ void GetListe(HttpClient httpClient, const char* endpoint_get_liste, ProductList
   // Construire la requête HTTP
   httpClient.beginRequest();
   httpClient.get(endpoint_get_liste);
+  //httpClient->get("/scanner/articles/1/1");
   httpClient.endRequest();
+
+  Serial.println("ici");
 
   // Lire la réponse du serveur
   int statusCode = httpClient.responseStatusCode();
@@ -51,7 +54,7 @@ void GetListe(HttpClient httpClient, const char* endpoint_get_liste, ProductList
     Serial.println("Erreur lors de l'appel API.");
   }
 }
-
+*/
 // Fonction pour effectuer un appel GET à l'URL fixe
 void GetArticle(HttpClient httpClient, const char* endpoint_get_article, ProductList* productList, String id) {
   Serial.println("Envoi de la requête GET Article ...");
@@ -95,7 +98,7 @@ void MarkAsBought(const String& articleId, ProductList* productList) {
     }
 };
 
-void parseJsonToProductList(const String& jsonInput, ProductList* productList) {
+/*void parseJsonToProductList(const String& jsonInput, ProductList* productList) {
     StaticJsonDocument<2048> doc; // Ajustez la taille si nécessaire
     DeserializationError error = deserializeJson(doc, jsonInput);
 
@@ -128,4 +131,4 @@ void parseJsonToProductList(const String& jsonInput, ProductList* productList) {
         // Ajouter le produit à la liste
         productList->addProduct(product);
     }
-}
+}*/

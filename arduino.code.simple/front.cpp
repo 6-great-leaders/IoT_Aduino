@@ -23,7 +23,7 @@ void drawWelcomeScreen(Adafruit_ILI9341 tft) {
   //tft.fillRect(125, 165, 5, 5, ILI9341_BLACK);
 }
 
-void drawDistance(Adafruit_ILI9341 tft, int distance) {
+void drawDistance(Adafruit_ILI9341 tft, float distance) {
   tft.fillRect(10, 15, 100, 30, tft.color565(39, 194, 120)); // Rectangle vert #27C278
 
   tft.setCursor(10, 15); // Position du texte de distance
@@ -33,7 +33,7 @@ void drawDistance(Adafruit_ILI9341 tft, int distance) {
   tft.print(" metres");
 }
 
-void drawArticle(Adafruit_ILI9341 tft, char * text){
+void drawArticle(Adafruit_ILI9341 tft, const char * text){
   tft.fillRect(180, 40, 100, 10, tft.color565(39, 194, 120)); // Rectangle vert #27C278
   tft.setCursor(180, 40); 
   tft.setTextColor(ILI9341_WHITE);
