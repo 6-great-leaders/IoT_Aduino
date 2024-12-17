@@ -1,6 +1,29 @@
 #include "front.h"
 
-void drawDistance(Adafruit_ILI9341 tft, int distance) {
+void drawWelcomeScreen(Adafruit_ILI9341 &tft) {
+  tft.fillScreen(ILI9341_WHITE); // Efface l'écran avec un fond blanc
+
+  // Rectangle de fond (par exemple gris clair)
+  tft.fillRect(10, 80, 220, 60, ILI9341_LIGHTGREY);
+
+  // Texte d'instruction
+  tft.setTextColor(ILI9341_BLACK);
+  tft.setTextSize(2);
+  tft.setCursor(20, 100);
+  tft.print("Scannez le QR Code");
+
+  // Texte plus petit en dessous
+  tft.setTextSize(1);
+  tft.setCursor(20, 130);
+  tft.print("Depuis l'application ScanIT");
+
+  // Petite animation (par exemple, une icône simplifiée de QR Code)
+  tft.drawRect(110, 150, 30, 30, ILI9341_BLACK);
+  tft.fillRect(115, 155, 5, 5, ILI9341_BLACK);
+  tft.fillRect(125, 165, 5, 5, ILI9341_BLACK);
+}
+
+void drawDistance(Adafruit_ILI9341 &tft, int distance) {
   tft.fillRect(10, 15, 100, 30, tft.color565(39, 194, 120)); // Rectangle vert #27C278
 
   tft.setCursor(10, 15); // Position du texte de distance
@@ -10,7 +33,7 @@ void drawDistance(Adafruit_ILI9341 tft, int distance) {
   tft.print(" metres");
 }
 
-void drawArticle(Adafruit_ILI9341 tft, char * text){
+void drawArticle(Adafruit_ILI9341 &tft, char * text){
   tft.fillRect(180, 40, 100, 10, tft.color565(39, 194, 120)); // Rectangle vert #27C278
   tft.setCursor(180, 40); 
   tft.setTextColor(ILI9341_WHITE);
@@ -19,7 +42,7 @@ void drawArticle(Adafruit_ILI9341 tft, char * text){
 }
 
 // Fonction pour dessiner l'en-tête
-void drawHeader(Adafruit_ILI9341 tft) {
+void drawHeader(Adafruit_ILI9341 &tft) {
   tft.fillRect(0, 0, 240, 50, tft.color565(39, 194, 120)); // Rectangle vert #27C278
   
   drawDistance(tft, 30);
@@ -32,14 +55,14 @@ void drawHeader(Adafruit_ILI9341 tft) {
 }
 
 // Fonction pour dessiner le cercle et la flèche
-void drawDirectionCircle(Adafruit_ILI9341 tft) {
+void drawDirectionCircle(Adafruit_ILI9341 &tft) {
   tft.fillCircle(120, 140, 60, tft.color565(39, 194, 120)); // Cercle vert
   
   tft.fillTriangle(110, 100, 130, 100, 120, 70, ILI9341_WHITE); // Flèche blanche
 }
 
 // Fonction pour animer une rotation de la flèche
-void rotateArrow(Adafruit_ILI9341 tft) {
+void rotateArrow(Adafruit_ILI9341 &tft) {
   for (int angle = 0; angle <= 360; angle += 10) {
     tft.fillCircle(120, 140, 60, tft.color565(39, 194, 120)); // Efface l'ancien
     tft.fillTriangle(
@@ -56,7 +79,7 @@ void rotateArrow(Adafruit_ILI9341 tft) {
 }
 
 // Fonction pour animer une rotation de la flèche vers un angle donné
-void rotateArrowToAngle(Adafruit_ILI9341 tft, int currentAngle, int targetAngle) {
+void rotateArrowToAngle(Adafruit_ILI9341 &tft, int currentAngle, int targetAngle) {
   // Détermine la direction de rotation (horaire ou antihoraire)
   int step = (targetAngle > currentAngle) ? 10 : -10;
 
@@ -102,7 +125,7 @@ void rotateArrowToAngle(Adafruit_ILI9341 tft, int currentAngle, int targetAngle)
 
 
 // Fonction pour dessiner la barre de progression
-void drawProgressBar(Adafruit_ILI9341 tft, int temps_restant, int progression_bar) {
+void drawProgressBar(Adafruit_ILI9341 &tft, int temps_restant, int progression_bar) {
   tft.fillRect(5, 230, 250, 20, ILI9341_WHITE); // effacer l'écriture précédente
 
   tft.setCursor(5, 230);
@@ -117,7 +140,7 @@ void drawProgressBar(Adafruit_ILI9341 tft, int temps_restant, int progression_ba
   
 }
 
-void drawBoldText(Adafruit_ILI9341 tft, const char* text, int x, int y, uint16_t color, uint8_t size = 1) {
+void drawBoldText(Adafruit_ILI9341 &tft, const char* text, int x, int y, uint16_t color, uint8_t size = 1) {
   tft.setTextColor(color);
   tft.setTextSize(size);
 
@@ -133,7 +156,7 @@ void drawBoldText(Adafruit_ILI9341 tft, const char* text, int x, int y, uint16_t
 }
 
 // Fonction pour dessiner le pied de page
-void drawFooter(Adafruit_ILI9341 tft) {
+void drawFooter(Adafruit_ILI9341 &tft) {
   tft.fillRect(0, 280, 240, 40, ILI9341_LIGHTGREY); // Rectangle gris pour les boutons
 
   // Dessin des boutons
@@ -154,4 +177,27 @@ void drawFooter(Adafruit_ILI9341 tft) {
   tft.setTextColor(ILI9341_BLACK);
   tft.setTextSize(1);
   tft.print("Liste");
+}
+
+void drawEndScreen(Adafruit_ILI9341 &tft) {
+  tft.fillScreen(ILI9341_WHITE); // Efface l'écran avec un fond blanc
+  
+  // Rectangle principal
+  tft.fillRect(10, 80, 220, 100, tft.color565(39, 194, 120)); // Vert pour le fond principal
+  
+  // Texte de fin
+  tft.setTextColor(ILI9341_WHITE);
+  tft.setTextSize(2);
+  tft.setCursor(30, 100);
+  tft.print("Fin des courses !");
+  
+  tft.setTextSize(1);
+  tft.setCursor(30, 130);
+  tft.print("Passez en caisse rapide");
+  tft.setCursor(30, 150);
+  tft.print("pour finaliser votre achat.");
+  
+  // Petit icône de check (par exemple)
+  tft.drawCircle(120, 200, 20, ILI9341_WHITE);
+  tft.fillTriangle(110, 200, 118, 208, 130, 188, ILI9341_WHITE); // Checkmark symbol
 }

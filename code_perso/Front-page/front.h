@@ -23,22 +23,26 @@
 #define TFT_RST   6
 #define TFT_MISO  10
 
-void drawDistance(Adafruit_ILI9341 tft, int distance);
+void drawWelcomeScreen(Adafruit_ILI9341 &tft);
 
-void drawArticle(Adafruit_ILI9341 tft, char * text);
+void drawDistance(Adafruit_ILI9341 &tft, int distance);
 
-void drawHeader(Adafruit_ILI9341 tft);
+void drawArticle(Adafruit_ILI9341 &tft, char * text);
 
-void drawDirectionCircle(Adafruit_ILI9341 tft);
+void drawHeader(Adafruit_ILI9341 &tft);
 
-void rotateArrow(Adafruit_ILI9341 tft);
+void drawDirectionCircle(Adafruit_ILI9341 &tft);
 
-void rotateArrowToAngle(Adafruit_ILI9341 tft, int currentAngle, int targetAngle);
+void rotateArrow(Adafruit_ILI9341 &tft);
 
-void drawProgressBar(Adafruit_ILI9341 tft, int temps_restant, int progression_bar);
+void rotateArrowToAngle(Adafruit_ILI9341 &tft, int currentAngle, int targetAngle);
 
-void drawBoldText(Adafruit_ILI9341 tft, const char* text, int x, int y, uint16_t color, uint8_t size);
+void drawProgressBar(Adafruit_ILI9341 &tft, int temps_restant, int progression_bar);
 
-void drawFooter(Adafruit_ILI9341 tft);
+void drawBoldText(Adafruit_ILI9341 &tft, const char* text, int x, int y, uint16_t color, uint8_t size);
+
+void drawFooter(Adafruit_ILI9341 &tft);
+
+void drawEndScreen(Adafruit_ILI9341 &tft);
 
 #endif
