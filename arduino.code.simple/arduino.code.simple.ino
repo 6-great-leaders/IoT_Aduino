@@ -4,6 +4,9 @@
 #include <ArduinoHttpClient.h>
 #include <ArduinoJson.h>
 
+// front
+Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC, TFT_MOSI, TFT_CLK, TFT_RST, TFT_MISO);
+
 // Informations de votre réseau WiFi
 //const char* ssid = "iPhone de Matteo";   // Nom du réseau WiFi
 const char* ssid = "Coucou";
@@ -16,6 +19,7 @@ const char* server = "146.148.5.29";
 const int port = 4000;
 const char* endpoint_get_liste = "/scanner/articles/1/1"; // Chemin de l'API
 const char* endpoint_get_article = "/scanner/articles/1/";
+const char* endpoint_checkout = "/scanner/checkout/1";
 String buffer = "";
 
 WiFiClient wifiClient; // Client WiFi
@@ -64,6 +68,18 @@ struct ProductList {
         products[size] = product;
         size++;
     }
+
+  void clear() {
+    // Libérer la mémoire allouée pour le tableau
+    delete[] products;
+    products = nullptr;
+
+    // Réinitialiser les autres attributs
+    size = 0;
+    capacity = 0;
+    index = 0;
+  }
+
 
     // Méthode pour obtenir un produit par index
     Product* getProduct(size_t index) const {
@@ -154,6 +170,32 @@ void GetArticle(String id) {
   MarkAsBought(id);
 }
 
+void checkout() {
+  Serial.println("Envoi de la requête GET Checkout ...");
+
+  // Construire la requête HTTP
+  httpClient.beginRequest();
+  httpClient.post(endpoint_checkout);
+  httpClient.endRequest();
+
+  // Lire la réponse du serveur
+  int statusCode = httpClient.responseStatusCode();
+  String response = httpClient.responseBody();
+  Serial.print("Statut HTTP : ");
+  Serial.println(statusCode);
+  if (statusCode == 200) {
+    Serial.println("Réponse reçue :");
+    Serial.println(response);
+
+    // Remettre a zero la liste de produits
+    productList.clear();
+    drawWelcomeScreen(tft);
+    
+  } else {
+    Serial.println("Erreur lors de l'appel API.");
+  }
+}
+
 size_t findNextItem() {
   for (size_t i = productList.index; i < productList.size; i++) {
     if (productList.products[i].scanned == false) {
@@ -219,8 +261,6 @@ void parseJsonToProductList(const String& jsonInput, ProductList& productList) {
     }
 }
 
-// front
-Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC, TFT_MOSI, TFT_CLK, TFT_RST, TFT_MISO);
 
 // LOCALISATION
 
@@ -317,7 +357,7 @@ void loop() {
   Serial.println(rightDirection);
 
   // if parcours, update la fleche selon si on va dans le bon sens
-  if (productList.capacity != 0) {
+  if (productList.capacity != 0 && productList.index != productList.size) {
     drawHeader(tft);
     drawArticle(tft, productList.products[productList.index].name.c_str());
     drawDistance(tft, distanceToTarget);
@@ -366,7 +406,7 @@ void loop() {
             drawArticle(tft, productList.products[productList.index].name.c_str());
             drawDirectionCircle(tft);
             drawDistance(tft, distanceToTarget);
-            drawProgressBar(tft, productList.size - productList.index, 0);
+            drawProgressBar(tft, productList.size - productList.index,  productList.index / productList.size * 100);
             drawFooter(tft);
             rotateArrowToAngle(tft, 0, 0);
           }
@@ -378,25 +418,28 @@ void loop() {
 
             if (productList.index == productList.size) {
               Serial.println("j'ai fini mes courses");
+              drawEndScreen(tft);
             }
+            else {
+              // mettre a jour la barre de progression
+              // si les courses sont finies, ecran de fin ? 
 
-            // mettre a jour la barre de progression
-            // si les courses sont finies, ecran de fin ? 
-            drawProgressBar(tft, productList.size - productList.index,  productList.index / productList.size * 100);
+              // calculer la nouvelle position
+              articlePosition[0] = productList.products[productList.index].positionX.toFloat();
+              articlePosition[1] = productList.products[productList.index].positionY.toFloat();
 
-            // calculer la nouvelle position
-            articlePosition[0] = productList.products[productList.index].positionX.toFloat();
-            articlePosition[1] = productList.products[productList.index].positionY.toFloat();
-
-            tft.fillScreen(ILI9341_WHITE); // Efface l'écran pour éviter les anciens contenus
-            drawHeader(tft);
-            drawArticle(tft, productList.products[productList.index].name.c_str());
-            drawDistance(tft, distanceToTarget);
-            drawDirectionCircle(tft);
-            drawProgressBar(tft, productList.size - productList.index, 0);
-            drawFooter(tft);
-            rotateArrowToAngle(tft, 0, 0);
-          } // else if checkout ? 
+              tft.fillScreen(ILI9341_WHITE); // Efface l'écran pour éviter les anciens contenus
+              drawHeader(tft);
+              drawArticle(tft, productList.products[productList.index].name.c_str());
+              drawDistance(tft, distanceToTarget);
+              drawDirectionCircle(tft);
+              drawProgressBar(tft, productList.size - productList.index,  productList.index / productList.size * 100);
+              drawFooter(tft);
+              rotateArrowToAngle(tft, 0, 0);
+            }
+          }
+        } else if (fct == "checkout") {
+          checkout();
         } else {
           Serial.println("Erreur : Pas de endpoints associé !");
           buffer = "";

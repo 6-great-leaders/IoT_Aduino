@@ -45,13 +45,13 @@ void drawArticle(Adafruit_ILI9341 tft, const char * text){
 void drawHeader(Adafruit_ILI9341 tft) {
   tft.fillRect(0, 0, 240, 50, tft.color565(39, 194, 120)); // Rectangle vert #27C278
   
-  drawDistance(tft, 30);
+  //drawDistance(tft, 30);
 
   tft.drawCircle(200, 25, 15, ILI9341_WHITE); // Cercle autour de l'image
   tft.fillCircle(200, 25, 14, ILI9341_WHITE); // Fond blanc pour image
   // Remplacez par l'image d'œufs si disponible
   
-  drawArticle(tft, "12 oeufs");
+  //drawArticle(tft, "12 oeufs");
 }
 
 // Fonction pour dessiner le cercle et la flèche
